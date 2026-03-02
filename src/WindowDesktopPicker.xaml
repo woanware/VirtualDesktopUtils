@@ -1,0 +1,201 @@
+<Window
+  x:Class="VirtualDesktopUtils.WindowDesktopPicker"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="Move Window"
+  WindowStyle="None"
+  AllowsTransparency="True"
+  Background="Transparent"
+  WindowStartupLocation="CenterScreen"
+  SizeToContent="WidthAndHeight"
+  Topmost="True"
+  ShowInTaskbar="False"
+  ResizeMode="NoResize"
+  Deactivated="Window_Deactivated"
+  PreviewKeyDown="Window_PreviewKeyDown"
+>
+  <!-- Outer drop shadow -->
+  <Border Padding="20">
+    <!-- Main card -->
+    <Border
+      CornerRadius="16"
+      MinWidth="320"
+    >
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#F01A1A2E" Offset="0" />
+          <GradientStop Color="#F0101024" Offset="1" />
+        </LinearGradientBrush>
+      </Border.Background>
+      <Border.Effect>
+        <DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.6" Color="Black" />
+      </Border.Effect>
+      <Border
+        CornerRadius="16"
+        BorderThickness="1"
+        Padding="20,16"
+      >
+        <Border.BorderBrush>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#30FFFFFF" Offset="0" />
+            <GradientStop Color="#10FFFFFF" Offset="1" />
+          </LinearGradientBrush>
+        </Border.BorderBrush>
+        <StackPanel>
+          <!-- Header -->
+          <TextBlock
+            Text="Move to Desktop"
+            FontSize="16"
+            FontWeight="SemiBold"
+            Foreground="#E0E0E0"
+            Margin="0,0,0,4"
+          />
+          <TextBlock
+            x:Name="WindowNameTextBlock"
+            FontSize="12"
+            Foreground="#70FFFFFF"
+            Margin="0,0,0,14"
+            TextTrimming="CharacterEllipsis"
+            MaxWidth="400"
+          />
+
+          <!-- Desktop list -->
+          <ListBox
+            x:Name="DesktopListBox"
+            Background="Transparent"
+            BorderThickness="0"
+            Padding="0"
+            FocusVisualStyle="{x:Null}"
+            PreviewKeyDown="DesktopListBox_PreviewKeyDown"
+            PreviewMouseLeftButtonUp="DesktopListBox_PreviewMouseLeftButtonUp"
+          >
+            <ListBox.ItemContainerStyle>
+              <Style TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="14,10" />
+                <Setter Property="Margin" Value="0,2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Foreground" Value="#D0D0D0" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                  <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                      <Border
+                        x:Name="Bd"
+                        Background="#15FFFFFF"
+                        CornerRadius="8"
+                        Padding="{TemplateBinding Padding}"
+                      >
+                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                      </Border>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                          <Setter TargetName="Bd" Property="Background" Value="#2B6DEB" />
+                          <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                          <Setter TargetName="Bd" Property="Background" Value="#2B6DEB" />
+                          <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </Setter.Value>
+                </Setter>
+              </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="28" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock
+                    Text="{Binding DisplayName}"
+                    FontSize="14"
+                    VerticalAlignment="Center"
+                  />
+                  <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding Shortcut}"
+                    FontSize="12"
+                    FontWeight="Bold"
+                    Foreground="#60FFFFFF"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                  />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <!-- Divider -->
+          <Border Height="1" Background="#20FFFFFF" Margin="0,10" CornerRadius="1" />
+
+          <!-- Pin button -->
+          <Button
+            x:Name="ShowOnAllButton"
+            Click="ShowOnAllButton_Click"
+            Cursor="Hand"
+            Padding="14,10"
+            HorizontalContentAlignment="Left"
+            FocusVisualStyle="{x:Null}"
+          >
+            <Button.Template>
+              <ControlTemplate TargetType="Button">
+                <Border
+                  x:Name="Bd"
+                  Background="#15FFFFFF"
+                  CornerRadius="8"
+                  Padding="{TemplateBinding Padding}"
+                >
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="28" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                      Text="{TemplateBinding Content}"
+                      FontSize="14"
+                      Foreground="#D0D0D0"
+                      VerticalAlignment="Center"
+                    />
+                    <TextBlock
+                      Grid.Column="1"
+                      Text="P"
+                      FontSize="12"
+                      FontWeight="Bold"
+                      Foreground="#60FFFFFF"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                    />
+                  </Grid>
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#2B6DEB" />
+                  </Trigger>
+                  <Trigger Property="IsFocused" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#2B6DEB" />
+                  </Trigger>
+                  <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#1E5AC0" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Button.Template>
+          </Button>
+
+          <!-- Hint bar -->
+          <TextBlock
+            FontSize="11"
+            Foreground="#40FFFFFF"
+            Margin="0,10,0,0"
+            HorizontalAlignment="Center"
+            Text="↑↓ Navigate  ·  Enter Select  ·  1–9 Jump  ·  P Pin  ·  Esc Close"
+          />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Border>
+</Window>

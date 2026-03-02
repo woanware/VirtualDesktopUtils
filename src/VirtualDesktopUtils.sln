@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11505.172 d18.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtualDesktopUtils", "VirtualDesktopUtils.csproj", "{620E2724-97F1-5613-45EF-C3BFB4AFC20C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{620E2724-97F1-5613-45EF-C3BFB4AFC20C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{620E2724-97F1-5613-45EF-C3BFB4AFC20C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{620E2724-97F1-5613-45EF-C3BFB4AFC20C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{620E2724-97F1-5613-45EF-C3BFB4AFC20C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0DBA1B3D-C1DA-441D-AB2F-48B9E30531EB}
+	EndGlobalSection
+EndGlobal
