@@ -48,7 +48,7 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - Modern rounded dark context menu: Show, Refresh, Exit.
 - Double-click tray icon to show settings.
 
-## 🏗️ Architecture (high level)
+## 🧱 Architecture (high level)
 - `src/WindowMain.xaml(.cs)`: settings UI, hotkey registration.
 - `src/WindowDesktopPicker.xaml(.cs)`: hotkey-triggered desktop picker popup.
 - `src/WindowTrayMenu.xaml(.cs)`: rounded dark WPF tray context menu.
