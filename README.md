@@ -14,6 +14,9 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - Optional startup sync of COM GUID config from `MScholtes/VirtualDesktop11-24H2.cs`.
 - Runs elevated (`requireAdministrator`) for reliability with elevated target apps.
 
+## 🖼️ Popup screenshot
+![VirtualDesktopUtils popup](Popup.png)
+
 ## 🧭 Typical workflow
 1. Start VirtualDesktopUtils — it runs elevated and sits in the tray.
 2. Press **picker hotkey** (default `Ctrl+Alt+Space`) while any app is focused to open the desktop picker.
@@ -44,7 +47,7 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 
 ## 🧱 Architecture (high level)
 - `src/WindowMain.xaml(.cs)`: settings UI, hotkey registration.
-- `src/WindowDesktopPicker.xaml(.cs)`: hotkey-triggered desktop picker popup.
+- `src/WindowPopUp.xaml(.cs)`: hotkey-triggered desktop picker popup.
 - `src/WindowTrayMenu.xaml(.cs)`: rounded dark WPF tray context menu.
 - `src/App.xaml.cs`: app startup/shutdown and tray lifecycle.
 - `src/Services/GlobalHotkeyService.cs`: `RegisterHotKey`-based picker and direct move hotkeys.
