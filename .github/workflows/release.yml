@@ -30,6 +30,6 @@ jobs:
          with:
            tag_name: v${{ inputs.version }}
            name: v${{ inputs.version }}
-           files: MenuShopper-${{ inputs.version }}-win-x64.zip
+           files: VirtualDesktopUtils-${{ inputs.version }}-win-x64.zip
          env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
