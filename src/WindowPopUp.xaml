@@ -1,5 +1,5 @@
 <Window
-  x:Class="VirtualDesktopUtils.WindowDesktopPicker"
+  x:Class="VirtualDesktopUtils.WindowPopUp"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   Title="Move Window"
@@ -20,13 +20,8 @@
     <Border
       CornerRadius="16"
       MinWidth="320"
+      Background="#2C2C2C"
     >
-      <Border.Background>
-        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-          <GradientStop Color="#F01A1A2E" Offset="0" />
-          <GradientStop Color="#F0101024" Offset="1" />
-        </LinearGradientBrush>
-      </Border.Background>
       <Border.Effect>
         <DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.6" Color="Black" />
       </Border.Effect>
@@ -34,13 +29,8 @@
         CornerRadius="16"
         BorderThickness="1"
         Padding="20,16"
+        BorderBrush="#40FFFFFF"
       >
-        <Border.BorderBrush>
-          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#30FFFFFF" Offset="0" />
-            <GradientStop Color="#10FFFFFF" Offset="1" />
-          </LinearGradientBrush>
-        </Border.BorderBrush>
         <StackPanel>
           <!-- Header -->
           <TextBlock

@@ -6,7 +6,7 @@ using VirtualDesktopUtils.Services;
 
 namespace VirtualDesktopUtils;
 
-public partial class WindowDesktopPicker : Window
+public partial class WindowPopUp : Window
 {
     private readonly VirtualDesktopService _virtualDesktopService;
     private readonly WindowMenuInjectionService _windowMenuInjectionService;
@@ -14,7 +14,7 @@ public partial class WindowDesktopPicker : Window
     private List<PickerItem> _items = new();
     private bool _closing;
 
-    internal WindowDesktopPicker(
+    internal WindowPopUp(
         VirtualDesktopService virtualDesktopService,
         WindowMenuInjectionService windowMenuInjectionService,
         nint targetWindowHandle)
@@ -73,7 +73,7 @@ public partial class WindowDesktopPicker : Window
     {
         if (_closing) return;
         _closing = true;
-        Close();
+        try { Close(); } catch { }
     }
 
     private void MoveToItem(PickerItem item)

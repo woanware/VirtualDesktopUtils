@@ -73,8 +73,12 @@ public partial class WindowMain : Window
         PickerHotkeyTextBox.Text = pickerConfig.DisplayText;
 
         var moveConfig = _runtimeConfigService.LoadMoveHotkeyConfiguration();
-        _moveModifiers = moveConfig.Modifiers;
-        MoveHotkeyTextBox.Text = moveConfig.DisplayText;
+        _moveModifiers = moveConfig.Modifiers != 0
+            ? moveConfig.Modifiers
+            : GlobalHotkeyService.ModControl | GlobalHotkeyService.ModAlt;
+        MoveHotkeyTextBox.Text = !string.IsNullOrWhiteSpace(moveConfig.DisplayText)
+            ? moveConfig.DisplayText
+            : "Ctrl+Alt";
     }
 
     private void AutoRefresh()
@@ -366,10 +370,11 @@ public partial class WindowMain : Window
         if (moved)
         {
             _windowMenuInjectionService.InvalidateCommands();
+            _virtualDesktopService.SwitchToDesktop(targetDesktop.Id);
         }
     }
 
-    private WindowDesktopPicker? _activePicker;
+    private WindowPopUp? _activePicker;
 
     private void OnPickerHotkeyTriggered()
     {
@@ -379,7 +384,7 @@ public partial class WindowMain : Window
         var ownHandle = new WindowInteropHelper(this).Handle;
         if (targetWindow == ownHandle || targetWindow == nint.Zero) return;
 
-        _activePicker = new WindowDesktopPicker(_virtualDesktopService, _windowMenuInjectionService, targetWindow);
+        _activePicker = new WindowPopUp(_virtualDesktopService, _windowMenuInjectionService, targetWindow);
         _activePicker.Closed += (_, _) => _activePicker = null;
         _activePicker.Show();
     }
