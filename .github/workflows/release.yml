@@ -25,7 +25,7 @@ jobs:
          run: |
            $version = '${{ inputs.version }}'
            $zip = "MenuShopper-$version-win-x64.zip"
-           Compress-Archive -Path .\VirtualDesktopUtils\bin\Release\net10.0\win-x64\publish\* -DestinationPath $zip
+           Compress-Archive -Path .\src\bin\Release\net10.0\win-x64\publish\* -DestinationPath $zip
        - uses: softprops/action-gh-release@v2
          with:
            tag_name: v${{ inputs.version }}
