@@ -23,6 +23,7 @@ public partial class WindowMain : Window
     private readonly GlobalHotkeyService _globalHotkeyService = new();
     private readonly ObservableCollection<RefreshIntervalOption> _refreshIntervals = new();
     private readonly System.Windows.Threading.DispatcherTimer _autoRefreshTimer;
+    private bool _suppressStartWithWindowsEvents;
 
     // Captured hotkey state
     private uint _pickerModifiers;
@@ -51,6 +52,9 @@ public partial class WindowMain : Window
         _refreshIntervals.Add(new RefreshIntervalOption("10 seconds", 10));
         RefreshIntervalComboBox.SelectedItem = _refreshIntervals.First(option => option.Seconds == 3);
         AutoRefreshCheckBox.IsChecked = true;
+        _suppressStartWithWindowsEvents = true;
+        StartWithWindowsCheckBox.IsChecked = _runtimeConfigService.IsStartWithWindowsEnabled();
+        _suppressStartWithWindowsEvents = false;
         GuidAutoUpdateCheckBox.IsChecked = _runtimeConfigService.IsGuidAutoUpdateOnStartupEnabled();
 
         LoadSavedHotkeys();
@@ -163,6 +167,34 @@ public partial class WindowMain : Window
 
     private void AutoRefreshCheckBox_OnChecked(object sender, RoutedEventArgs e) => ApplyAutoRefreshSettings();
     private void AutoRefreshCheckBox_OnUnchecked(object sender, RoutedEventArgs e) => ApplyAutoRefreshSettings();
+
+    private void StartWithWindowsCheckBox_OnChecked(object sender, RoutedEventArgs e) =>
+        SetStartWithWindowsOption(true);
+    private void StartWithWindowsCheckBox_OnUnchecked(object sender, RoutedEventArgs e) =>
+        SetStartWithWindowsOption(false);
+
+    private void SetStartWithWindowsOption(bool enabled)
+    {
+        if (_suppressStartWithWindowsEvents)
+        {
+            return;
+        }
+
+        var (success, message) = _runtimeConfigService.SetStartWithWindowsEnabled(enabled);
+        if (success)
+        {
+            return;
+        }
+
+        _suppressStartWithWindowsEvents = true;
+        StartWithWindowsCheckBox.IsChecked = !enabled;
+        _suppressStartWithWindowsEvents = false;
+        System.Windows.MessageBox.Show(
+            message,
+            "VirtualDesktopUtils",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+    }
 
     private void GuidAutoUpdateCheckBox_OnChecked(object sender, RoutedEventArgs e) =>
         _runtimeConfigService.SetGuidAutoUpdateOnStartupEnabled(true);

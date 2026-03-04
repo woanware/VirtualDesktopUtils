@@ -2,6 +2,8 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Security;
+using Microsoft.Win32;
 
 namespace VirtualDesktopUtils.Services;
 
@@ -9,6 +11,8 @@ internal sealed class RuntimeConfigService
 {
     private const string ConfigDirectoryName = "VirtualDesktopUtils";
     private const string ConfigFileName = "config.json";
+    private const string StartupRunRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string StartupRunValueName = "VirtualDesktopUtils";
     private const string UpstreamGuidSourceUrl = "https://raw.githubusercontent.com/MScholtes/VirtualDesktop/master/VirtualDesktop11-24H2.cs";
     private const string UpstreamGuidSourceName = "MScholtes/VirtualDesktop11-24H2.cs";
 
@@ -53,6 +57,25 @@ internal sealed class RuntimeConfigService
     public bool IsGuidAutoUpdateOnStartupEnabled()
     {
         return LoadConfig().EnableGuidAutoUpdateOnStartup;
+    }
+
+    public bool IsStartWithWindowsEnabled()
+    {
+        return LoadConfig().EnableStartWithWindows;
+    }
+
+    public (bool Success, string Message) SetStartWithWindowsEnabled(bool enabled)
+    {
+        var config = LoadConfig();
+        config.EnableStartWithWindows = enabled;
+        SaveConfig(config);
+        return ApplyStartWithWindowsRegistration(enabled);
+    }
+
+    public (bool Success, string Message) EnsureStartWithWindowsSettingApplied()
+    {
+        var enabled = LoadConfig().EnableStartWithWindows;
+        return ApplyStartWithWindowsRegistration(enabled);
     }
 
     public void SetGuidAutoUpdateOnStartupEnabled(bool enabled)
@@ -172,6 +195,45 @@ internal sealed class RuntimeConfigService
         return values;
     }
 
+    private static (bool Success, string Message) ApplyStartWithWindowsRegistration(bool enabled)
+    {
+        try
+        {
+            using var runKey = Registry.CurrentUser.CreateSubKey(StartupRunRegistryPath, writable: true);
+            if (runKey is null)
+            {
+                return (false, "Windows startup registration failed: unable to open startup registry key.");
+            }
+
+            if (!enabled)
+            {
+                runKey.DeleteValue(StartupRunValueName, throwOnMissingValue: false);
+                return (true, "Start with Windows disabled.");
+            }
+
+            var processPath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(processPath))
+            {
+                return (false, "Windows startup registration failed: app executable path not found.");
+            }
+
+            runKey.SetValue(StartupRunValueName, $"\"{processPath}\"", RegistryValueKind.String);
+            return (true, "Start with Windows enabled.");
+        }
+        catch (IOException ex)
+        {
+            return (false, $"Windows startup registration failed: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return (false, $"Windows startup registration failed: {ex.Message}");
+        }
+        catch (SecurityException ex)
+        {
+            return (false, $"Windows startup registration failed: {ex.Message}");
+        }
+    }
+
     private static RuntimeConfig NormalizeConfig(RuntimeConfig? config)
     {
         var normalized = config ?? CreateDefaultConfig();
@@ -270,6 +332,7 @@ internal sealed class RuntimeConfigService
     private sealed class RuntimeConfig
     {
         public bool EnableGuidAutoUpdateOnStartup { get; set; }
+        public bool EnableStartWithWindows { get; set; }
         public GuidConfigSection Guids { get; set; } = new();
         public HotkeyConfigSection PickerHotkey { get; set; } = new();
         public HotkeyConfigSection MoveHotkey { get; set; } = new();

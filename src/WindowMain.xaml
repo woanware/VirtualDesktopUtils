@@ -39,6 +39,7 @@
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Settings" />
@@ -72,6 +73,18 @@
         </StackPanel>
 
         <DockPanel Grid.Row="3" Margin="0,10,0,0" LastChildFill="False">
+          <CheckBox
+            x:Name="StartWithWindowsCheckBox"
+            Content="Start automatically with Windows"
+            FontSize="15"
+            Foreground="White"
+            VerticalAlignment="Center"
+            Checked="StartWithWindowsCheckBox_OnChecked"
+            Unchecked="StartWithWindowsCheckBox_OnUnchecked"
+          />
+        </DockPanel>
+
+        <DockPanel Grid.Row="4" Margin="0,10,0,0" LastChildFill="False">
           <CheckBox
             x:Name="GuidAutoUpdateCheckBox"
             Content="Auto-update COM GUID config on startup"
@@ -118,7 +131,7 @@
         </DockPanel>
 
         <StackPanel
-          Grid.Row="4"
+          Grid.Row="5"
           Margin="0,10,0,0"
           Orientation="Horizontal"
           VerticalAlignment="Center"
@@ -155,7 +168,7 @@
         </StackPanel>
 
         <StackPanel
-          Grid.Row="5"
+          Grid.Row="6"
           Margin="0,10,0,0"
           Orientation="Horizontal"
           VerticalAlignment="Center"

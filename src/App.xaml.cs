@@ -34,6 +34,7 @@ public partial class App : System.Windows.Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         _runtimeConfigService = new RuntimeConfigService();
+        _ = _runtimeConfigService.EnsureStartWithWindowsSettingApplied();
         string? startupStatus = null;
 
         if (_runtimeConfigService.IsGuidAutoUpdateOnStartupEnabled())
