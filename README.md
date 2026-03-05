@@ -9,6 +9,7 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - **Direct move hotkeys** — configurable modifier (default `Ctrl+Alt`) + number 1–9 moves the focused window directly to that desktop without opening the picker.
 - **Pin/unpin windows** — pin a window to all desktops or unpin it, via the picker popup.
 - **Start with Windows** — optional startup toggle in settings.
+- **App update checks** — optional startup and manual checks against GitHub Releases.
 - Native Windows 11 virtual desktop integration via internal COM interop.
 - Cross-process window move support (including modern/packaged apps like Windows Terminal).
 - System tray icon with modern rounded dark context menu (Show, Refresh, Exit).
@@ -39,6 +40,8 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 ### Settings UI
 - Toggle auto-refresh desktop state on/off with configurable interval.
 - Toggle start automatically with Windows.
+- Toggle automatic app-update checks on startup.
+- Manual **Check now** for app updates.
 - Toggle GUID auto-update on startup + manual **Update now**.
 - Press-to-capture hotkey fields for picker hotkey and direct move modifier.
 
@@ -56,6 +59,7 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - `src/Services/VirtualDesktopService.cs`: desktop enumeration, move, switch, pin/unpin via internal COM.
 - `src/Services/WindowDiscoveryService.cs`: candidate top-level window filtering.
 - `src/Services/RuntimeConfigService.cs`: persisted config (`config.json`) for all settings.
+- `src/Services/AppUpdateService.cs`: app update check against GitHub Releases and version comparison.
 - `src/Services/TrayIconService.cs`: system tray icon via Win32 `Shell_NotifyIcon` P/Invoke (no WinForms).
 
 ## 🚀 Getting started

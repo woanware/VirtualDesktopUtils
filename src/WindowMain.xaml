@@ -40,6 +40,7 @@
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Settings" />
@@ -91,6 +92,35 @@
             Unchecked="StartWithWindowsCheckBox_OnUnchecked"
           />
         </DockPanel>
+
+        <StackPanel Grid.Row="7" Margin="0,10,0,0">
+          <CheckBox
+            x:Name="AutoCheckAppUpdatesCheckBox"
+            Content="Automatically check for app updates on startup"
+            FontSize="15"
+            Foreground="White"
+            Checked="AutoCheckAppUpdatesCheckBox_OnChecked"
+            Unchecked="AutoCheckAppUpdatesCheckBox_OnUnchecked"
+          />
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+            <Button
+              x:Name="CheckForUpdatesButton"
+              Margin="0,0,0,0"
+              Padding="10,4"
+              Cursor="Hand"
+              Content="Check now"
+              Click="CheckForUpdatesButton_OnClick"
+            />
+            <TextBlock
+              x:Name="AppUpdateStatusTextBlock"
+              Margin="10,0,0,0"
+              VerticalAlignment="Center"
+              FontSize="13"
+              Foreground="#C0FFFFFF"
+              Text=""
+            />
+          </StackPanel>
+        </StackPanel>
 
         <DockPanel Grid.Row="4" Margin="0,10,0,0" LastChildFill="False">
           <CheckBox

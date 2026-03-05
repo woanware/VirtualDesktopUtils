@@ -59,6 +59,30 @@ internal sealed class RuntimeConfigService
         return LoadConfig().EnableGuidAutoUpdateOnStartup;
     }
 
+    public bool IsAppUpdateCheckOnStartupEnabled()
+    {
+        return LoadConfig().EnableAppUpdateCheckOnStartup;
+    }
+
+    public void SetAppUpdateCheckOnStartupEnabled(bool enabled)
+    {
+        var config = LoadConfig();
+        config.EnableAppUpdateCheckOnStartup = enabled;
+        SaveConfig(config);
+    }
+
+    public string GetLastAppUpdateCheckUtc()
+    {
+        return LoadConfig().LastAppUpdateCheckUtc ?? string.Empty;
+    }
+
+    public void SetLastAppUpdateCheckUtc(string value)
+    {
+        var config = LoadConfig();
+        config.LastAppUpdateCheckUtc = value;
+        SaveConfig(config);
+    }
+
     public bool IsStartWithWindowsEnabled()
     {
         return LoadConfig().EnableStartWithWindows;
@@ -259,6 +283,7 @@ internal sealed class RuntimeConfigService
             : normalized.Guids.Source;
 
         normalized.Guids.LastUpdatedUtc ??= string.Empty;
+        normalized.LastAppUpdateCheckUtc ??= string.Empty;
         normalized.PickerHotkey ??= new HotkeyConfigSection();
         normalized.MoveHotkey ??= new HotkeyConfigSection();
         return normalized;
@@ -268,6 +293,8 @@ internal sealed class RuntimeConfigService
     {
         return new RuntimeConfig
         {
+            EnableAppUpdateCheckOnStartup = true,
+            LastAppUpdateCheckUtc = string.Empty,
             EnableGuidAutoUpdateOnStartup = false,
             Guids = new GuidConfigSection
             {
@@ -331,6 +358,8 @@ internal sealed class RuntimeConfigService
 
     private sealed class RuntimeConfig
     {
+        public bool EnableAppUpdateCheckOnStartup { get; set; } = true;
+        public string LastAppUpdateCheckUtc { get; set; } = string.Empty;
         public bool EnableGuidAutoUpdateOnStartup { get; set; }
         public bool EnableStartWithWindows { get; set; }
         public GuidConfigSection Guids { get; set; } = new();

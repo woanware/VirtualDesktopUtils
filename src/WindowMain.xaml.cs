@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,10 +23,13 @@ public partial class WindowMain : Window
 
     private readonly RuntimeConfigService _runtimeConfigService;
     private readonly VirtualDesktopService _virtualDesktopService;
+    private readonly AppUpdateService _appUpdateService = new();
     private readonly GlobalHotkeyService _globalHotkeyService = new();
     private readonly ObservableCollection<RefreshIntervalOption> _refreshIntervals = new();
     private readonly System.Windows.Threading.DispatcherTimer _autoRefreshTimer;
+    private static readonly TimeSpan StartupUpdateCheckInterval = TimeSpan.FromHours(6);
     private bool _suppressStartWithWindowsEvents;
+    private bool _suppressAppUpdateOptionEvents;
 
     // Captured hotkey state
     private uint _pickerModifiers;
@@ -56,8 +61,12 @@ public partial class WindowMain : Window
         _suppressStartWithWindowsEvents = true;
         StartWithWindowsCheckBox.IsChecked = _runtimeConfigService.IsStartWithWindowsEnabled();
         _suppressStartWithWindowsEvents = false;
+        _suppressAppUpdateOptionEvents = true;
+        AutoCheckAppUpdatesCheckBox.IsChecked = _runtimeConfigService.IsAppUpdateCheckOnStartupEnabled();
+        _suppressAppUpdateOptionEvents = false;
         GuidAutoUpdateCheckBox.IsChecked = _runtimeConfigService.IsGuidAutoUpdateOnStartupEnabled();
         VersionTextBlock.Text = $"Version {GetDisplayVersion()}";
+        AppUpdateStatusTextBlock.Text = BuildLastCheckedLabel(_runtimeConfigService.GetLastAppUpdateCheckUtc());
 
         LoadSavedHotkeys();
 
@@ -158,6 +167,11 @@ public partial class WindowMain : Window
         RefreshRuntimeState();
 
         ApplyAutoRefreshSettings();
+
+        if (ShouldRunStartupUpdateCheck())
+        {
+            _ = CheckForAppUpdatesAsync(userInitiated: false);
+        }
     }
 
     private void WindowMain_OnSourceInitialized(object? sender, EventArgs e)
@@ -174,6 +188,119 @@ public partial class WindowMain : Window
         SetStartWithWindowsOption(true);
     private void StartWithWindowsCheckBox_OnUnchecked(object sender, RoutedEventArgs e) =>
         SetStartWithWindowsOption(false);
+
+    private void AutoCheckAppUpdatesCheckBox_OnChecked(object sender, RoutedEventArgs e) =>
+        SetAutoCheckAppUpdatesOption(true);
+    private void AutoCheckAppUpdatesCheckBox_OnUnchecked(object sender, RoutedEventArgs e) =>
+        SetAutoCheckAppUpdatesOption(false);
+
+    private async void CheckForUpdatesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await CheckForAppUpdatesAsync(userInitiated: true);
+    }
+
+    private void SetAutoCheckAppUpdatesOption(bool enabled)
+    {
+        if (_suppressAppUpdateOptionEvents)
+        {
+            return;
+        }
+
+        _runtimeConfigService.SetAppUpdateCheckOnStartupEnabled(enabled);
+    }
+
+    private async Task CheckForAppUpdatesAsync(bool userInitiated)
+    {
+        CheckForUpdatesButton.IsEnabled = false;
+        try
+        {
+            AppUpdateStatusTextBlock.Text = "Checking for app updates…";
+
+            var result = await _appUpdateService.CheckForUpdatesAsync();
+            var checkedUtc = DateTime.UtcNow.ToString("O");
+            _runtimeConfigService.SetLastAppUpdateCheckUtc(checkedUtc);
+
+            if (result.Status == AppUpdateCheckStatus.Error)
+            {
+                AppUpdateStatusTextBlock.Text = result.Message;
+                if (userInitiated)
+                {
+                    System.Windows.MessageBox.Show(
+                        result.Message,
+                        "VirtualDesktopUtils update check",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            else
+            {
+                AppUpdateStatusTextBlock.Text = BuildLastCheckedLabel(checkedUtc);
+            }
+
+            if (result.Status == AppUpdateCheckStatus.UpdateAvailable && result.LatestRelease is not null)
+            {
+                var latestRelease = result.LatestRelease;
+                var promptResult = System.Windows.MessageBox.Show(
+                    $"A new version is available.\n\nCurrent: v{FormatVersionForDisplay(result.CurrentVersion)}\nLatest: v{latestRelease.VersionText}\n\nOpen the release page now?",
+                    "VirtualDesktopUtils update available",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (promptResult == MessageBoxResult.Yes &&
+                    !TryOpenUrl(latestRelease.ReleaseUrl, out var openError))
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Unable to open release page: {openError}",
+                        "VirtualDesktopUtils",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            else if (userInitiated && result.Status == AppUpdateCheckStatus.UpToDate)
+            {
+                System.Windows.MessageBox.Show(
+                    result.Message,
+                    "VirtualDesktopUtils update check",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+        finally
+        {
+            CheckForUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private bool ShouldRunStartupUpdateCheck()
+    {
+        if (!_runtimeConfigService.IsAppUpdateCheckOnStartupEnabled())
+        {
+            return false;
+        }
+
+        var lastCheckUtc = _runtimeConfigService.GetLastAppUpdateCheckUtc();
+        if (string.IsNullOrWhiteSpace(lastCheckUtc))
+        {
+            return true;
+        }
+
+        if (!DateTime.TryParse(lastCheckUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsedLastCheck))
+        {
+            return true;
+        }
+
+        return DateTime.UtcNow - parsedLastCheck >= StartupUpdateCheckInterval;
+    }
+
+    private static string BuildLastCheckedLabel(string lastCheckedUtc)
+    {
+        if (!DateTime.TryParse(lastCheckedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsedUtc))
+        {
+            return "Last update check: never";
+        }
+
+        return $"Last update check: {parsedUtc.ToLocalTime():g}";
+    }
 
     private void SetStartWithWindowsOption(bool enabled)
     {
@@ -466,6 +593,38 @@ public partial class WindowMain : Window
 
         var assemblyVersion = typeof(WindowMain).Assembly.GetName().Version;
         return assemblyVersion?.ToString() ?? "unknown";
+    }
+
+    private static string FormatVersionForDisplay(Version version)
+    {
+        return version.Revision <= 0
+            ? $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}"
+            : version.ToString();
+    }
+
+    private static bool TryOpenUrl(string url, out string error)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            error = string.Empty;
+            return true;
+        }
+        catch (Win32Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+        catch (ObjectDisposedException ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            error = ex.Message;
+            return false;
+        }
     }
 
     private void ApplyNativeTitleBarTheme()

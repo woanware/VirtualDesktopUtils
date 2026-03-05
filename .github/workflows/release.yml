@@ -26,10 +26,27 @@ jobs:
            $version = '${{ inputs.version }}'
            $zip = "VirtualDesktopUtils-$version-win-x64.zip"
            Compress-Archive -Path .\src\bin\Release\net10.0-windows\win-x64\publish\* -DestinationPath $zip
+       - name: Write update manifest
+         shell: pwsh
+         run: |
+           $version = '${{ inputs.version }}'
+           $tag = "v$version"
+           $asset = "VirtualDesktopUtils-$version-win-x64.zip"
+           $manifest = @{
+             version = $version
+             tag = $tag
+             asset = @{
+               name = $asset
+               url = "https://github.com/${{ github.repository }}/releases/download/$tag/$asset"
+             }
+           }
+           $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path update-manifest.json -Encoding UTF8
        - uses: softprops/action-gh-release@v2
          with:
            tag_name: v${{ inputs.version }}
            name: v${{ inputs.version }}
-           files: VirtualDesktopUtils-${{ inputs.version }}-win-x64.zip
-         env:
-           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           files: |
+             VirtualDesktopUtils-${{ inputs.version }}-win-x64.zip
+             update-manifest.json
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
