@@ -11,42 +11,50 @@ permissions:
   contents: write
 
 jobs:
-   build:
-     runs-on: windows-latest
-     steps:
-       - uses: actions/checkout@v4
-       - uses: actions/setup-dotnet@v4
-         with:
-           dotnet-version: "10.0.x"
-       - run: dotnet restore .\src\VirtualDesktopUtils.csproj
-       - run: dotnet publish .\src\VirtualDesktopUtils.csproj -c Release -r win-x64 --self-contained false /p:Version=${{ inputs.version }} /p:AssemblyVersion=${{ inputs.version }} /p:FileVersion=${{ inputs.version }} /p:InformationalVersion=${{ inputs.version }}
-       - name: Zip
-         shell: pwsh
-         run: |
-           $version = '${{ inputs.version }}'
-           $zip = "VirtualDesktopUtils-$version-win-x64.zip"
-           Compress-Archive -Path .\src\bin\Release\net10.0-windows\win-x64\publish\* -DestinationPath $zip
-       - name: Write update manifest
-         shell: pwsh
-         run: |
-           $version = '${{ inputs.version }}'
-           $tag = "v$version"
-           $asset = "VirtualDesktopUtils-$version-win-x64.zip"
-           $manifest = @{
-             version = $version
-             tag = $tag
-             asset = @{
-               name = $asset
-               url = "https://github.com/${{ github.repository }}/releases/download/$tag/$asset"
-             }
-           }
-           $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path update-manifest.json -Encoding UTF8
-       - uses: softprops/action-gh-release@v2
-         with:
-           tag_name: v${{ inputs.version }}
-           name: v${{ inputs.version }}
-           files: |
-             VirtualDesktopUtils-${{ inputs.version }}-win-x64.zip
-             update-manifest.json
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore .\src\VirtualDesktopUtils.csproj
+
+      - name: Publish
+        run: dotnet publish .\src\VirtualDesktopUtils.csproj -c Release -r win-x64 --self-contained false /p:Version=${{ inputs.version }} /p:AssemblyVersion=${{ inputs.version }} /p:FileVersion=${{ inputs.version }} /p:InformationalVersion=${{ inputs.version }}
+
+      - name: Zip
+        shell: pwsh
+        run: |
+          $version = '${{ inputs.version }}'
+          $zip = "VirtualDesktopUtils-$version-win-x64.zip"
+          Compress-Archive -Path .\src\bin\Release\net10.0-windows\win-x64\publish\* -DestinationPath $zip
+
+      - name: Write update manifest
+        shell: pwsh
+        run: |
+          $version = '${{ inputs.version }}'
+          $tag = "v$version"
+          $asset = "VirtualDesktopUtils-$version-win-x64.zip"
+          $manifest = @{
+            version = $version
+            tag = $tag
+            asset = @{
+              name = $asset
+              url = "https://github.com/${{ github.repository }}/releases/download/$tag/$asset"
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path update-manifest.json -Encoding UTF8
+
+      - uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          files: |
+            VirtualDesktopUtils-${{ inputs.version }}-win-x64.zip
+            update-manifest.json

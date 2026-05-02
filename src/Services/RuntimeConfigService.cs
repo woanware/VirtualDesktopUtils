@@ -1,8 +1,11 @@
 using System.Net.Http;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Security;
+using System.Security.Principal;
 using Microsoft.Win32;
 
 namespace VirtualDesktopUtils.Services;
@@ -13,8 +16,14 @@ internal sealed class RuntimeConfigService
     private const string ConfigFileName = "config.json";
     private const string StartupRunRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string StartupRunValueName = "VirtualDesktopUtils";
+    private const string StartupTaskName = "VirtualDesktopUtils";
     private const string UpstreamGuidSourceUrl = "https://raw.githubusercontent.com/MScholtes/VirtualDesktop/master/VirtualDesktop11-24H2.cs";
     private const string UpstreamGuidSourceName = "MScholtes/VirtualDesktop11-24H2.cs";
+    private const int TaskActionExec = 0;
+    private const int TaskCreateOrUpdate = 6;
+    private const int TaskLogonInteractiveToken = 3;
+    private const int TaskRunLevelHighest = 1;
+    private const int TaskTriggerLogon = 9;
 
     private static readonly Guid DefaultImmersiveShellClsid = new("C2F03A33-21F5-47FA-B4BB-156362A2F239");
     private static readonly Guid DefaultVirtualDesktopManagerInternalServiceClsid = new("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B");
@@ -103,9 +112,19 @@ internal sealed class RuntimeConfigService
     public (bool Success, string Message) SetStartWithWindowsEnabled(bool enabled)
     {
         var config = LoadConfig();
-        config.EnableStartWithWindows = enabled;
-        SaveConfig(config);
-        return ApplyStartWithWindowsRegistration(enabled);
+        var (success, message) = ApplyStartWithWindowsRegistration(enabled);
+        if (!success)
+        {
+            return (false, message);
+        }
+
+        if (config.EnableStartWithWindows != enabled)
+        {
+            config.EnableStartWithWindows = enabled;
+            SaveConfig(config);
+        }
+
+        return (true, message);
     }
 
     public (bool Success, string Message) EnsureStartWithWindowsSettingApplied()
@@ -235,28 +254,27 @@ internal sealed class RuntimeConfigService
     {
         try
         {
-            using var runKey = Registry.CurrentUser.CreateSubKey(StartupRunRegistryPath, writable: true);
-            if (runKey is null)
+            if (enabled)
             {
-                return (false, "Windows startup registration failed: unable to open startup registry key.");
+                var startupCommand = GetStartupCommand();
+                RegisterStartupTask(startupCommand.ExecutablePath, startupCommand.Arguments, startupCommand.WorkingDirectory);
+                RemoveLegacyStartupRegistryValue();
+                return (true, "Start with Windows enabled.");
             }
 
-            if (!enabled)
-            {
-                runKey.DeleteValue(StartupRunValueName, throwOnMissingValue: false);
-                return (true, "Start with Windows disabled.");
-            }
-
-            var processPath = Environment.ProcessPath;
-            if (string.IsNullOrWhiteSpace(processPath))
-            {
-                return (false, "Windows startup registration failed: app executable path not found.");
-            }
-
-            runKey.SetValue(StartupRunValueName, $"\"{processPath}\"", RegistryValueKind.String);
-            return (true, "Start with Windows enabled.");
+            UnregisterStartupTask();
+            RemoveLegacyStartupRegistryValue();
+            return (true, "Start with Windows disabled.");
         }
         catch (IOException ex)
+        {
+            return (false, $"Windows startup registration failed: {ex.Message}");
+        }
+        catch (COMException ex)
+        {
+            return (false, $"Windows startup registration failed: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
         {
             return (false, $"Windows startup registration failed: {ex.Message}");
         }
@@ -270,6 +288,144 @@ internal sealed class RuntimeConfigService
         }
     }
 
+    private static (string ExecutablePath, string Arguments, string WorkingDirectory) GetStartupCommand()
+    {
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(processPath))
+        {
+            throw new InvalidOperationException("app executable path not found.");
+        }
+
+        var workingDirectory = Path.GetDirectoryName(processPath);
+        if (string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            throw new InvalidOperationException("app working directory not found.");
+        }
+
+        var entryAssemblyPath = Assembly.GetEntryAssembly()?.Location;
+        if (Path.GetFileName(processPath).Equals("dotnet.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(entryAssemblyPath))
+            {
+                throw new InvalidOperationException("app entry assembly path not found.");
+            }
+
+            return (processPath, $"\"{entryAssemblyPath}\"", Path.GetDirectoryName(entryAssemblyPath) ?? workingDirectory);
+        }
+
+        return (processPath, string.Empty, workingDirectory);
+    }
+
+    private static void RegisterStartupTask(string executablePath, string arguments, string workingDirectory)
+    {
+        var serviceType = Type.GetTypeFromProgID("Schedule.Service");
+        if (serviceType is null)
+        {
+            throw new InvalidOperationException("Task Scheduler service is unavailable.");
+        }
+
+        var currentUser = WindowsIdentity.GetCurrent().Name;
+        if (string.IsNullOrWhiteSpace(currentUser))
+        {
+            throw new InvalidOperationException("current Windows user could not be determined.");
+        }
+
+        dynamic? service = null;
+        dynamic? rootFolder = null;
+        dynamic? taskDefinition = null;
+        dynamic? logonTrigger = null;
+        dynamic? execAction = null;
+
+        try
+        {
+            service = Activator.CreateInstance(serviceType)
+                ?? throw new InvalidOperationException("Task Scheduler service could not be created.");
+            service.Connect();
+            rootFolder = service.GetFolder("\\");
+            taskDefinition = service.NewTask(0);
+
+            taskDefinition.RegistrationInfo.Description = "Launches VirtualDesktopUtils at user logon.";
+            taskDefinition.Settings.Enabled = true;
+            taskDefinition.Settings.StartWhenAvailable = true;
+            taskDefinition.Settings.DisallowStartIfOnBatteries = false;
+            taskDefinition.Settings.StopIfGoingOnBatteries = false;
+            taskDefinition.Settings.MultipleInstances = 0;
+            taskDefinition.Principal.UserId = currentUser;
+            taskDefinition.Principal.LogonType = TaskLogonInteractiveToken;
+            taskDefinition.Principal.RunLevel = TaskRunLevelHighest;
+
+            logonTrigger = taskDefinition.Triggers.Create(TaskTriggerLogon);
+            logonTrigger.Enabled = true;
+            logonTrigger.UserId = currentUser;
+
+            execAction = taskDefinition.Actions.Create(TaskActionExec);
+            execAction.Path = executablePath;
+            execAction.Arguments = arguments;
+            execAction.WorkingDirectory = workingDirectory;
+
+            rootFolder.RegisterTaskDefinition(
+                StartupTaskName,
+                taskDefinition,
+                TaskCreateOrUpdate,
+                Type.Missing,
+                Type.Missing,
+                TaskLogonInteractiveToken,
+                Type.Missing);
+        }
+        finally
+        {
+            ReleaseComObject(execAction);
+            ReleaseComObject(logonTrigger);
+            ReleaseComObject(taskDefinition);
+            ReleaseComObject(rootFolder);
+            ReleaseComObject(service);
+        }
+    }
+
+    private static void UnregisterStartupTask()
+    {
+        var serviceType = Type.GetTypeFromProgID("Schedule.Service");
+        if (serviceType is null)
+        {
+            throw new InvalidOperationException("Task Scheduler service is unavailable.");
+        }
+
+        dynamic? service = null;
+        dynamic? rootFolder = null;
+
+        try
+        {
+            service = Activator.CreateInstance(serviceType)
+                ?? throw new InvalidOperationException("Task Scheduler service could not be created.");
+            service.Connect();
+            rootFolder = service.GetFolder("\\");
+            rootFolder.DeleteTask(StartupTaskName, 0);
+        }
+        catch (COMException ex) when ((uint)ex.HResult == 0x80070002)
+        {
+        }
+        finally
+        {
+            ReleaseComObject(rootFolder);
+            ReleaseComObject(service);
+        }
+    }
+
+    private static void RemoveLegacyStartupRegistryValue()
+    {
+        using var runKey = Registry.CurrentUser.CreateSubKey(StartupRunRegistryPath, writable: true);
+        runKey?.DeleteValue(StartupRunValueName, throwOnMissingValue: false);
+    }
+
+    private static void ReleaseComObject(object? value)
+    {
+        if (value is not null && Marshal.IsComObject(value))
+        {
+            Marshal.ReleaseComObject(value);
+        }
+    }
+
+    private static RuntimeConfig NormalizeConfig(RuntimeConfig? config)
     private static RuntimeConfig NormalizeConfig(
         RuntimeConfig? config,
         bool treatMissingFirstLaunchAsCompleted = false)

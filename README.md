@@ -15,6 +15,7 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - System tray icon with modern rounded dark context menu (Show, Refresh, Exit).
 - Optional startup sync of COM GUID config from `MScholtes/VirtualDesktop11-24H2.cs`.
 - Runs elevated (`requireAdministrator`) for reliability with elevated target apps.
+- Start with Windows uses a per-user Task Scheduler logon task so the elevated app can launch reliably at sign-in.
 
 ## 🖼️ Popup screenshot
 ![VirtualDesktopUtils popup](Popup.png)
@@ -87,6 +88,7 @@ Or run the built executable:
 
 ## ⚙️ Configuration notes
 - Elevation is controlled by `src/app.manifest` (`requireAdministrator`).
+- Start with Windows is implemented with a per-user Task Scheduler logon task, not the `Run` registry key.
 - All settings are persisted to `%LOCALAPPDATA%\VirtualDesktopUtils\config.json`.
 
 ## 🙏 Sources and credits
