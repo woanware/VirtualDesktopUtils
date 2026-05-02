@@ -88,6 +88,18 @@ internal sealed class RuntimeConfigService
         return LoadConfig().EnableStartWithWindows;
     }
 
+    public bool HasCompletedFirstLaunch()
+    {
+        return LoadConfig().HasCompletedFirstLaunch == true;
+    }
+
+    public void MarkFirstLaunchCompleted()
+    {
+        var config = LoadConfig();
+        config.HasCompletedFirstLaunch = true;
+        SaveConfig(config);
+    }
+
     public (bool Success, string Message) SetStartWithWindowsEnabled(bool enabled)
     {
         var config = LoadConfig();
@@ -172,7 +184,7 @@ internal sealed class RuntimeConfigService
             {
                 var json = File.ReadAllText(_configFilePath);
                 var parsed = JsonSerializer.Deserialize<RuntimeConfig>(json, JsonOptions);
-                return NormalizeConfig(parsed);
+                return NormalizeConfig(parsed, treatMissingFirstLaunchAsCompleted: true);
             }
             catch (JsonException)
             {
@@ -258,10 +270,14 @@ internal sealed class RuntimeConfigService
         }
     }
 
-    private static RuntimeConfig NormalizeConfig(RuntimeConfig? config)
+    private static RuntimeConfig NormalizeConfig(
+        RuntimeConfig? config,
+        bool treatMissingFirstLaunchAsCompleted = false)
     {
         var normalized = config ?? CreateDefaultConfig();
         normalized.Guids ??= new GuidConfigSection();
+
+        normalized.HasCompletedFirstLaunch ??= treatMissingFirstLaunchAsCompleted;
 
         if (!Guid.TryParse(normalized.Guids.ImmersiveShellClsid, out _))
         {
@@ -295,6 +311,7 @@ internal sealed class RuntimeConfigService
         {
             EnableAppUpdateCheckOnStartup = true,
             LastAppUpdateCheckUtc = string.Empty,
+            HasCompletedFirstLaunch = false,
             EnableGuidAutoUpdateOnStartup = false,
             Guids = new GuidConfigSection
             {
@@ -362,6 +379,7 @@ internal sealed class RuntimeConfigService
         public string LastAppUpdateCheckUtc { get; set; } = string.Empty;
         public bool EnableGuidAutoUpdateOnStartup { get; set; }
         public bool EnableStartWithWindows { get; set; }
+        public bool? HasCompletedFirstLaunch { get; set; }
         public GuidConfigSection Guids { get; set; } = new();
         public HotkeyConfigSection PickerHotkey { get; set; } = new();
         public HotkeyConfigSection MoveHotkey { get; set; } = new();

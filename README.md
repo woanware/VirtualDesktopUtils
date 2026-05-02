@@ -8,7 +8,7 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - **Desktop picker popup** — press a configurable hotkey (default `Ctrl+Alt+Space`) to open a centered popup for the focused window. Pick a desktop by clicking, arrow keys + Enter, number keys 1–9, or press P to pin/unpin to all desktops. Auto-closes after selection or on Escape.
 - **Direct move hotkeys** — configurable modifier (default `Ctrl+Alt`) + number 1–9 moves the focused window directly to that desktop without opening the picker.
 - **Pin/unpin windows** — pin a window to all desktops or unpin it, via the picker popup.
-- **Start with Windows** — optional startup toggle in settings.
+- **Start with Windows** — optional startup toggle in settings; after the first launch, the app starts hidden in the tray.
 - **App update checks** — optional startup and manual checks against GitHub Releases.
 - Native Windows 11 virtual desktop integration via internal COM interop.
 - Cross-process window move support (including modern/packaged apps like Windows Terminal).
@@ -46,7 +46,8 @@ VirtualDesktopUtils is a Windows 11 WPF utility for moving windows between virtu
 - Press-to-capture hotkey fields for picker hotkey and direct move modifier.
 
 ### Tray behavior
-- Minimize-to-tray on close.
+- First launch opens settings; later launches start hidden in the tray.
+- Minimize-to-tray on close with a styled tray notification.
 - Modern rounded dark context menu: Show, Refresh, Exit.
 - Double-click tray icon to show settings.
 

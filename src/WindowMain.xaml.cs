@@ -30,6 +30,7 @@ public partial class WindowMain : Window
     private static readonly TimeSpan StartupUpdateCheckInterval = TimeSpan.FromHours(6);
     private bool _suppressStartWithWindowsEvents;
     private bool _suppressAppUpdateOptionEvents;
+    private bool _runtimeServicesStarted;
 
     // Captured hotkey state
     private uint _pickerModifiers;
@@ -123,6 +124,12 @@ public partial class WindowMain : Window
         Focus();
     }
 
+    public void StartHidden()
+    {
+        _ = new WindowInteropHelper(this).EnsureHandle();
+        StartRuntimeServices();
+    }
+
     public void PrepareForExit()
     {
         _autoRefreshTimer.Stop();
@@ -137,7 +144,7 @@ public partial class WindowMain : Window
     {
         _autoRefreshTimer.Interval = TimeSpan.FromSeconds(GetSelectedRefreshSeconds());
 
-        if (!IsLoaded)
+        if (!_runtimeServicesStarted)
         {
             return;
         }
@@ -164,6 +171,17 @@ public partial class WindowMain : Window
 
     private void WindowMain_OnLoaded(object sender, RoutedEventArgs e)
     {
+        StartRuntimeServices();
+    }
+
+    private void StartRuntimeServices()
+    {
+        if (_runtimeServicesStarted)
+        {
+            return;
+        }
+
+        _runtimeServicesStarted = true;
         RefreshRuntimeState();
 
         ApplyAutoRefreshSettings();

@@ -35,6 +35,7 @@ public partial class App : System.Windows.Application
 
         _runtimeConfigService = new RuntimeConfigService();
         _ = _runtimeConfigService.EnsureStartWithWindowsSettingApplied();
+        var showMainWindowOnStartup = !_runtimeConfigService.HasCompletedFirstLaunch();
         string? startupStatus = null;
 
         if (_runtimeConfigService.IsGuidAutoUpdateOnStartupEnabled())
@@ -47,12 +48,22 @@ public partial class App : System.Windows.Application
 
         _mainWindow = new WindowMain(_runtimeConfigService, startupStatus);
         _mainWindow.Closing += MainWindowOnClosing;
-        _mainWindow.Show();
 
         _trayIconService = new TrayIconService(
             onShowRequested: ShowMainWindow,
             onRefreshRequested: () => _mainWindow?.RefreshData(),
             onExitRequested: ExitApplication);
+
+        if (showMainWindowOnStartup)
+        {
+            _mainWindow.Show();
+        }
+        else
+        {
+            _mainWindow.StartHidden();
+        }
+
+        _runtimeConfigService.MarkFirstLaunchCompleted();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -75,7 +86,9 @@ public partial class App : System.Windows.Application
         if (!_hasShownTrayNotification)
         {
             _hasShownTrayNotification = true;
-            _trayIconService?.ShowBalloonTip("VirtualDesktopUtils", "Still running — double-click the tray icon to reopen.");
+            WindowTrayNotification.ShowNotification(
+                "VirtualDesktopUtils is still running",
+                "Use the tray icon to reopen settings, refresh desktops, or exit.");
         }
     }
 
