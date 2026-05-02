@@ -1,11 +1,11 @@
+using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.IO;
 using System.Security;
 using System.Security.Principal;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
 namespace VirtualDesktopUtils.Services;
@@ -17,7 +17,8 @@ internal sealed class RuntimeConfigService
     private const string StartupRunRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string StartupRunValueName = "VirtualDesktopUtils";
     private const string StartupTaskName = "VirtualDesktopUtils";
-    private const string UpstreamGuidSourceUrl = "https://raw.githubusercontent.com/MScholtes/VirtualDesktop/master/VirtualDesktop11-24H2.cs";
+    private const string UpstreamGuidSourceUrl =
+        "https://raw.githubusercontent.com/MScholtes/VirtualDesktop/master/VirtualDesktop11-24H2.cs";
     private const string UpstreamGuidSourceName = "MScholtes/VirtualDesktop11-24H2.cs";
     private const int TaskActionExec = 0;
     private const int TaskCreateOrUpdate = 6;
@@ -25,19 +26,26 @@ internal sealed class RuntimeConfigService
     private const int TaskRunLevelHighest = 1;
     private const int TaskTriggerLogon = 9;
 
-    private static readonly Guid DefaultImmersiveShellClsid = new("C2F03A33-21F5-47FA-B4BB-156362A2F239");
-    private static readonly Guid DefaultVirtualDesktopManagerInternalServiceClsid = new("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B");
-    private static readonly Guid DefaultVirtualDesktopManagerClsid = new("AA509086-5CA9-4C25-8F95-589D3C07B48A");
+    private static readonly Guid DefaultImmersiveShellClsid = new(
+        "C2F03A33-21F5-47FA-B4BB-156362A2F239"
+    );
+    private static readonly Guid DefaultVirtualDesktopManagerInternalServiceClsid = new(
+        "C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B"
+    );
+    private static readonly Guid DefaultVirtualDesktopManagerClsid = new(
+        "AA509086-5CA9-4C25-8F95-589D3C07B48A"
+    );
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        WriteIndented = true,
     };
 
     private static readonly Regex GuidDeclarationPattern = new(
         "CLSID_(?<name>[A-Za-z0-9_]+)\\s*=\\s*new\\s+Guid\\(\"(?<value>[0-9A-Fa-f-]{36})\"\\)",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled
+    );
 
     private readonly string _configDirectoryPath;
     private readonly string _configFilePath;
@@ -45,7 +53,9 @@ internal sealed class RuntimeConfigService
 
     public RuntimeConfigService()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var localAppData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData
+        );
         _configDirectoryPath = Path.Combine(localAppData, ConfigDirectoryName);
         _configFilePath = Path.Combine(_configDirectoryPath, ConfigFileName);
     }
@@ -54,13 +64,23 @@ internal sealed class RuntimeConfigService
     {
         var config = LoadConfig();
         return new GuidConfiguration(
-            ImmersiveShellClsid: ParseOrDefault(config.Guids.ImmersiveShellClsid, DefaultImmersiveShellClsid),
+            ImmersiveShellClsid: ParseOrDefault(
+                config.Guids.ImmersiveShellClsid,
+                DefaultImmersiveShellClsid
+            ),
             VirtualDesktopManagerInternalServiceClsid: ParseOrDefault(
                 config.Guids.VirtualDesktopManagerInternalServiceClsid,
-                DefaultVirtualDesktopManagerInternalServiceClsid),
-            VirtualDesktopManagerClsid: ParseOrDefault(config.Guids.VirtualDesktopManagerClsid, DefaultVirtualDesktopManagerClsid),
-            Source: string.IsNullOrWhiteSpace(config.Guids.Source) ? "defaults" : config.Guids.Source,
-            LastUpdatedUtc: config.Guids.LastUpdatedUtc ?? string.Empty);
+                DefaultVirtualDesktopManagerInternalServiceClsid
+            ),
+            VirtualDesktopManagerClsid: ParseOrDefault(
+                config.Guids.VirtualDesktopManagerClsid,
+                DefaultVirtualDesktopManagerClsid
+            ),
+            Source: string.IsNullOrWhiteSpace(config.Guids.Source)
+                ? "defaults"
+                : config.Guids.Source,
+            LastUpdatedUtc: config.Guids.LastUpdatedUtc ?? string.Empty
+        );
     }
 
     public bool IsGuidAutoUpdateOnStartupEnabled()
@@ -158,9 +178,11 @@ internal sealed class RuntimeConfigService
         }
 
         var guidMap = ParseGuidMap(upstreamSource);
-        if (!guidMap.TryGetValue("ImmersiveShell", out var immersiveShell) ||
-            !guidMap.TryGetValue("VirtualDesktopManagerInternal", out var managerInternal) ||
-            !guidMap.TryGetValue("VirtualDesktopManager", out var manager))
+        if (
+            !guidMap.TryGetValue("ImmersiveShell", out var immersiveShell)
+            || !guidMap.TryGetValue("VirtualDesktopManagerInternal", out var managerInternal)
+            || !guidMap.TryGetValue("VirtualDesktopManager", out var manager)
+        )
         {
             return (false, "GUID sync failed: required GUIDs were not found in upstream source.");
         }
@@ -257,7 +279,11 @@ internal sealed class RuntimeConfigService
             if (enabled)
             {
                 var startupCommand = GetStartupCommand();
-                RegisterStartupTask(startupCommand.ExecutablePath, startupCommand.Arguments, startupCommand.WorkingDirectory);
+                RegisterStartupTask(
+                    startupCommand.ExecutablePath,
+                    startupCommand.Arguments,
+                    startupCommand.WorkingDirectory
+                );
                 RemoveLegacyStartupRegistryValue();
                 return (true, "Start with Windows enabled.");
             }
@@ -288,7 +314,11 @@ internal sealed class RuntimeConfigService
         }
     }
 
-    private static (string ExecutablePath, string Arguments, string WorkingDirectory) GetStartupCommand()
+    private static (
+        string ExecutablePath,
+        string Arguments,
+        string WorkingDirectory
+    ) GetStartupCommand()
     {
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(processPath))
@@ -310,13 +340,21 @@ internal sealed class RuntimeConfigService
                 throw new InvalidOperationException("app entry assembly path not found.");
             }
 
-            return (processPath, $"\"{entryAssemblyPath}\"", Path.GetDirectoryName(entryAssemblyPath) ?? workingDirectory);
+            return (
+                processPath,
+                $"\"{entryAssemblyPath}\"",
+                Path.GetDirectoryName(entryAssemblyPath) ?? workingDirectory
+            );
         }
 
         return (processPath, string.Empty, workingDirectory);
     }
 
-    private static void RegisterStartupTask(string executablePath, string arguments, string workingDirectory)
+    private static void RegisterStartupTask(
+        string executablePath,
+        string arguments,
+        string workingDirectory
+    )
     {
         var serviceType = Type.GetTypeFromProgID("Schedule.Service");
         if (serviceType is null)
@@ -338,13 +376,17 @@ internal sealed class RuntimeConfigService
 
         try
         {
-            service = Activator.CreateInstance(serviceType)
-                ?? throw new InvalidOperationException("Task Scheduler service could not be created.");
+            service =
+                Activator.CreateInstance(serviceType)
+                ?? throw new InvalidOperationException(
+                    "Task Scheduler service could not be created."
+                );
             service.Connect();
             rootFolder = service.GetFolder("\\");
             taskDefinition = service.NewTask(0);
 
-            taskDefinition.RegistrationInfo.Description = "Launches VirtualDesktopUtils at user logon.";
+            taskDefinition.RegistrationInfo.Description =
+                "Launches VirtualDesktopUtils at user logon.";
             taskDefinition.Settings.Enabled = true;
             taskDefinition.Settings.StartWhenAvailable = true;
             taskDefinition.Settings.DisallowStartIfOnBatteries = false;
@@ -370,7 +412,8 @@ internal sealed class RuntimeConfigService
                 Type.Missing,
                 Type.Missing,
                 TaskLogonInteractiveToken,
-                Type.Missing);
+                Type.Missing
+            );
         }
         finally
         {
@@ -395,15 +438,16 @@ internal sealed class RuntimeConfigService
 
         try
         {
-            service = Activator.CreateInstance(serviceType)
-                ?? throw new InvalidOperationException("Task Scheduler service could not be created.");
+            service =
+                Activator.CreateInstance(serviceType)
+                ?? throw new InvalidOperationException(
+                    "Task Scheduler service could not be created."
+                );
             service.Connect();
             rootFolder = service.GetFolder("\\");
             rootFolder.DeleteTask(StartupTaskName, 0);
         }
-        catch (COMException ex) when ((uint)ex.HResult == 0x80070002)
-        {
-        }
+        catch (COMException ex) when ((uint)ex.HResult == 0x80070002) { }
         finally
         {
             ReleaseComObject(rootFolder);
@@ -413,7 +457,10 @@ internal sealed class RuntimeConfigService
 
     private static void RemoveLegacyStartupRegistryValue()
     {
-        using var runKey = Registry.CurrentUser.CreateSubKey(StartupRunRegistryPath, writable: true);
+        using var runKey = Registry.CurrentUser.CreateSubKey(
+            StartupRunRegistryPath,
+            writable: true
+        );
         runKey?.DeleteValue(StartupRunValueName, throwOnMissingValue: false);
     }
 
@@ -425,10 +472,10 @@ internal sealed class RuntimeConfigService
         }
     }
 
-    private static RuntimeConfig NormalizeConfig(RuntimeConfig? config)
     private static RuntimeConfig NormalizeConfig(
         RuntimeConfig? config,
-        bool treatMissingFirstLaunchAsCompleted = false)
+        bool treatMissingFirstLaunchAsCompleted = false
+    )
     {
         var normalized = config ?? CreateDefaultConfig();
         normalized.Guids ??= new GuidConfigSection();
@@ -442,12 +489,14 @@ internal sealed class RuntimeConfigService
 
         if (!Guid.TryParse(normalized.Guids.VirtualDesktopManagerInternalServiceClsid, out _))
         {
-            normalized.Guids.VirtualDesktopManagerInternalServiceClsid = DefaultVirtualDesktopManagerInternalServiceClsid.ToString("D");
+            normalized.Guids.VirtualDesktopManagerInternalServiceClsid =
+                DefaultVirtualDesktopManagerInternalServiceClsid.ToString("D");
         }
 
         if (!Guid.TryParse(normalized.Guids.VirtualDesktopManagerClsid, out _))
         {
-            normalized.Guids.VirtualDesktopManagerClsid = DefaultVirtualDesktopManagerClsid.ToString("D");
+            normalized.Guids.VirtualDesktopManagerClsid =
+                DefaultVirtualDesktopManagerClsid.ToString("D");
         }
 
         normalized.Guids.Source = string.IsNullOrWhiteSpace(normalized.Guids.Source)
@@ -472,11 +521,12 @@ internal sealed class RuntimeConfigService
             Guids = new GuidConfigSection
             {
                 ImmersiveShellClsid = DefaultImmersiveShellClsid.ToString("D"),
-                VirtualDesktopManagerInternalServiceClsid = DefaultVirtualDesktopManagerInternalServiceClsid.ToString("D"),
+                VirtualDesktopManagerInternalServiceClsid =
+                    DefaultVirtualDesktopManagerInternalServiceClsid.ToString("D"),
                 VirtualDesktopManagerClsid = DefaultVirtualDesktopManagerClsid.ToString("D"),
                 Source = "defaults",
-                LastUpdatedUtc = string.Empty
-            }
+                LastUpdatedUtc = string.Empty,
+            },
         };
     }
 
@@ -490,7 +540,8 @@ internal sealed class RuntimeConfigService
         Guid VirtualDesktopManagerInternalServiceClsid,
         Guid VirtualDesktopManagerClsid,
         string Source,
-        string LastUpdatedUtc);
+        string LastUpdatedUtc
+    );
 
     public HotkeyConfiguration LoadPickerHotkeyConfiguration()
     {
@@ -498,7 +549,10 @@ internal sealed class RuntimeConfigService
         return new HotkeyConfiguration(
             Modifiers: config.PickerHotkey.Modifiers,
             Vk: config.PickerHotkey.Vk,
-            DisplayText: string.IsNullOrWhiteSpace(config.PickerHotkey.DisplayText) ? "Ctrl+Alt+Space" : config.PickerHotkey.DisplayText);
+            DisplayText: string.IsNullOrWhiteSpace(config.PickerHotkey.DisplayText)
+                ? "Ctrl+Alt+Space"
+                : config.PickerHotkey.DisplayText
+        );
     }
 
     public void SavePickerHotkeyConfiguration(uint modifiers, uint vk, string displayText)
@@ -516,7 +570,10 @@ internal sealed class RuntimeConfigService
         return new HotkeyConfiguration(
             Modifiers: config.MoveHotkey.Modifiers,
             Vk: 0,
-            DisplayText: string.IsNullOrWhiteSpace(config.MoveHotkey.DisplayText) ? "Ctrl+Alt" : config.MoveHotkey.DisplayText);
+            DisplayText: string.IsNullOrWhiteSpace(config.MoveHotkey.DisplayText)
+                ? "Ctrl+Alt"
+                : config.MoveHotkey.DisplayText
+        );
     }
 
     public void SaveMoveHotkeyConfiguration(uint modifiers, string displayText)
@@ -527,7 +584,11 @@ internal sealed class RuntimeConfigService
         SaveConfig(config);
     }
 
-    internal readonly record struct HotkeyConfiguration(uint Modifiers, uint Vk, string DisplayText);
+    internal readonly record struct HotkeyConfiguration(
+        uint Modifiers,
+        uint Vk,
+        string DisplayText
+    );
 
     private sealed class RuntimeConfig
     {
@@ -546,7 +607,8 @@ internal sealed class RuntimeConfigService
         public string ImmersiveShellClsid { get; set; } = DefaultImmersiveShellClsid.ToString("D");
         public string VirtualDesktopManagerInternalServiceClsid { get; set; } =
             DefaultVirtualDesktopManagerInternalServiceClsid.ToString("D");
-        public string VirtualDesktopManagerClsid { get; set; } = DefaultVirtualDesktopManagerClsid.ToString("D");
+        public string VirtualDesktopManagerClsid { get; set; } =
+            DefaultVirtualDesktopManagerClsid.ToString("D");
         public string Source { get; set; } = "defaults";
         public string LastUpdatedUtc { get; set; } = string.Empty;
     }
